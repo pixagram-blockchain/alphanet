@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  pixagram:
+    image: mkysel/pixagram:alpha
+    container_name: pixagram_container
+    ports:
+      - "7777:7777"
+    volumes:
+      - ./pixagram:/root/.pixagramd
+    command: /usr/local/steemd
