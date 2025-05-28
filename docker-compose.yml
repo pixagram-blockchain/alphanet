@@ -2,10 +2,26 @@ version: '3.8'
 
 services:
   pixagram:
-    image: mkysel/pixagram:alpha
+    image: mkysel/pixagram:new-alpha
     container_name: pixagram_container
+
+    # 1) Explicitly invoke the container’s entrypoint
+    entrypoint:
+      - /home/hived_admin/docker_entrypoint.sh
+
+    # 2) Pass your hived binary as the argument
+    command:
+      - /home/hived/bin/hived
+
     ports:
       - "7777:7777"
+
     volumes:
-      - ./pixagram:/root/.pixagramd
-    command: /usr/local/steemd
+      - ./pixagram:/home/hived/datadir
+      # make sure this maps to DATADIR in the image’s ENV
+
+    # (optional) if the entrypoint script relies on environment vars:
+    environment:
+      - DATADIR=/home/hived/datadir
+      - SHM_DIR=/home/hived/datadir/blockchain
+
