@@ -24,4 +24,4 @@ services:
     environment:
       - DATADIR=/home/hived/datadir
       - SHM_DIR=/home/hived/datadir/blockchain
-
+      - HTTP_PORT=7777
