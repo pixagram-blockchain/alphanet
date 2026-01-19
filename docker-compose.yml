@@ -1,17 +1,12 @@
-version: '3.8'
-
 services:
   pixagram:
-    image: mkysel/pixagram:new-alpha
+    image: mkysel/pixagram:testnet-x86
     container_name: pixagram_container
 
-    # 1) Explicitly invoke the container’s entrypoint
     entrypoint:
-      - /home/hived_admin/docker_entrypoint.sh
-
-    # 2) Pass your hived binary as the argument
-    command:
-      - /home/hived/bin/hived
+      - /bin/bash
+      - -lc
+      - ulimit -n 1048576; exec /home/hived_admin/docker_entrypoint.sh /home/hived/bin/hived
 
     ports:
       - "7777:7777"
@@ -25,3 +20,8 @@ services:
       - DATADIR=/home/hived/datadir
       - SHM_DIR=/home/hived/datadir/blockchain
       - HTTP_PORT=7777
+      - HIVED_UID=1000
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
