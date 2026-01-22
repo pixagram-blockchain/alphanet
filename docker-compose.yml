@@ -25,3 +25,35 @@ services:
       nofile:
         soft: 1048576
         hard: 1048576
+
+  pixagram_haf:
+    image: mkysel/pixagram-haf:testnet-x86
+    container_name: pixagram_haf_container
+
+    depends_on:
+      - pixagram
+
+    command:
+      - --p2p-seed-node=pixagram:2001
+
+    ports:
+      - "7778:7778"  # HTTP
+      - "8092:8092"  # WS
+      - "2002:2002"  # P2P
+
+    volumes:
+      - ./pixagram-haf:/home/hived/datadir
+
+    environment:
+      - DATADIR=/home/hived/datadir
+      - SHM_DIR=/home/hived/datadir/blockchain
+      - HTTP_PORT=7778
+      - WS_PORT=8092
+      - P2P_PORT=2002
+      - HIVED_UID=1000
+      - PG_ACCESS=local haf_block_log haf_maintainer trust\nhost haf_block_log haf_app_admin 172.0.0.0/8 trust\nhost all pghero 172.0.0.0/8 trust
+
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
