@@ -1,6 +1,6 @@
 # Pixagram Alphanet Docker Setup
 
-This repository contains a `docker-compose.yml` file for running the **Pixagram** application using Docker.
+This repository contains a `docker-compose.yml` file for running **Pixagram** and **Pixagram HAF** behind a tiny nginx proxy that provides CORS.
 
 ## Requirements
 
@@ -11,11 +11,24 @@ This repository contains a `docker-compose.yml` file for running the **Pixagram*
 
 ### Pixagram
 
-- **Image**: `mkysel/pixagram:alpha`
+- **Image**: `mkysel/pixagram:testnet-x86`
 - **Container Name**: `pixagram_container`
-- **Ports**: Exposes port `7777` (container) mapped to port `7777` (host).
-- **Volumes**: Mounts the local directory `./pixagram` to `/root/.pixagramd` in the container.
-- **Command**: Starts the Pixagram service with `/usr/local/steemd`.
+- **Ports**: HTTP is internal-only (via nginx). P2P is published directly on `2001`.
+- **Volumes**: Mounts the local directory `./pixagram` to `/home/hived/datadir` in the container.
+
+### Pixagram HAF
+
+- **Image**: `mkysel/pixagram-haf:testnet-x86`
+- **Container Name**: `pixagram_haf_container`
+- **Ports**: HTTP/WS are internal-only (via nginx). P2P is published directly on `2002`.
+- **Volumes**: Mounts the local directory `./pixagram-haf` to `/home/hived/datadir` in the container.
+
+### Nginx (CORS proxy)
+
+- **Image**: `nginx:alpine`
+- **Container Name**: `pixagram_nginx`
+- **Ports**: Publishes `7777` (Pixagram HTTP), `7778` (Pixagram HAF HTTP), `8092` (Pixagram HAF WS).
+- **Config**: `./nginx/conf.d/default.conf`
 
 ## Usage
 
@@ -30,7 +43,12 @@ This repository contains a `docker-compose.yml` file for running the **Pixagram*
    docker-compose up -d
    ```
 
-3. Access the Pixagram service at `http://localhost:7777`.
+3. Access the services:
+   - Pixagram HTTP: `http://localhost:7777`
+   - Pixagram P2P: `tcp://localhost:2001`
+   - Pixagram HAF HTTP: `http://localhost:7778`
+   - Pixagram HAF WS: `ws://localhost:8092`
+   - Pixagram HAF P2P: `tcp://localhost:2002`
 
 4. To stop the container:
    ```bash
@@ -39,5 +57,7 @@ This repository contains a `docker-compose.yml` file for running the **Pixagram*
 
 ## Notes
 
-- Modify the `docker-compose.yml` file to change configurations like ports or volumes if necessary.
-- The `./pixagram` directory is mounted by default for persistent storage.
+- Nginx adds CORS headers for both HTTP endpoints and the WS endpoint.
+- P2P is exposed directly on `2001` and `2002` and is not proxied by nginx.
+- Modify the `nginx/conf.d/default.conf` file to adjust allowed origins/headers if needed.
+- The `./pixagram` and `./pixagram-haf` directories are mounted for persistent storage.
