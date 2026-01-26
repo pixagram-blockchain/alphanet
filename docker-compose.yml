@@ -56,12 +56,27 @@ services:
       - WS_PORT=8092
       - P2P_PORT=2002
       - HIVED_UID=1000
-      - PG_ACCESS=local haf_block_log haf_maintainer trust\nhost haf_block_log haf_app_admin 172.0.0.0/8 trust\nhost all pghero 172.0.0.0/8 trust
+      - PG_ACCESS=local haf_block_log haf_maintainer trust\nhost haf_block_log haf_app_admin 172.0.0.0/8 trust\nhost haf_block_log haf_admin 172.0.0.0/8 trust\nhost haf_block_log hivemind 172.0.0.0/8 trust\nhost all pghero 172.0.0.0/8 trust
 
     ulimits:
       nofile:
         soft: 1048576
         hard: 1048576
+    networks:
+      - backend
+
+  hivemind:
+    image: mkysel/hivemind:x86-testnet
+    container_name: hivemind_container
+    depends_on:
+      - pixagram_haf
+    command:
+      - server
+    expose:
+      - "8080"
+    environment:
+      - POSTGRES_URL=postgresql://hivemind@pixagram_haf:5432/haf_block_log
+      - POSTGRES_ADMIN_URL=postgresql://haf_admin@pixagram_haf:5432/haf_block_log
     networks:
       - backend
 
@@ -71,9 +86,10 @@ services:
     depends_on:
       - pixagram
       - pixagram_haf
+      - hivemind
     ports:
       - "7777:7777"  # Pixagram HTTP
-      - "7778:7778"  # Pixagram HAF HTTP
+      - "7778:7778"  # Hivemind HTTP
       - "8092:8092"  # Pixagram HAF WS
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
