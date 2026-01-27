@@ -1,7 +1,48 @@
 services:
+  init_permissions:
+    image: alpine:3.20
+    container_name: pixagram_init_permissions
+    user: "0:0"
+    volumes:
+      - ./pixagram:/home/hived/datadir
+      - ./pixagram-haf:/home/hived/haf_datadir
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      chown -R 1000:1000 /home/hived/datadir /home/hived/haf_datadir
+    restart: "no"
+    networks:
+      - backend
+
+  hivemind_setup:
+    image: mkysel/hivemind:x86-testnet
+    container_name: hivemind_setup
+    depends_on:
+      init_permissions:
+        condition: service_completed_successfully
+      pixagram_haf:
+        condition: service_started
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      set -e;
+      until psql "${POSTGRES_ADMIN_URL}" -c 'select 1' >/dev/null 2>&1; do
+        echo "[hivemind_setup] waiting for postgres...";
+        sleep 2;
+      done;
+      exec /home/hivemind/docker_entrypoint.sh setup --with-apps
+    environment:
+      - POSTGRES_URL=postgresql://hivemind@pixagram_haf:5432/haf_block_log
+      - POSTGRES_ADMIN_URL=postgresql://haf_admin@pixagram_haf:5432/haf_block_log
+    restart: "no"
+    networks:
+      - backend
+
   pixagram:
     image: mkysel/pixagram:testnet-x86
     container_name: pixagram_container
+
+    depends_on:
+      init_permissions:
+        condition: service_completed_successfully
 
     entrypoint:
       - /bin/bash
@@ -35,7 +76,10 @@ services:
     container_name: pixagram_haf_container
 
     depends_on:
-      - pixagram
+      init_permissions:
+        condition: service_completed_successfully
+      pixagram:
+        condition: service_started
 
     command:
       - --p2p-seed-node=pixagram:2001
@@ -69,7 +113,10 @@ services:
     image: mkysel/hivemind:x86-testnet
     container_name: hivemind_container
     depends_on:
-      - pixagram_haf
+      hivemind_setup:
+        condition: service_completed_successfully
+      pixagram_haf:
+        condition: service_started
     command:
       - server
     expose:

@@ -23,11 +23,18 @@ This repository contains a `docker-compose.yml` file for running **Pixagram** an
 - **Ports**: HTTP/WS are internal-only (via nginx). P2P is published directly on `2002`.
 - **Volumes**: Mounts the local directory `./pixagram-haf` to `/home/hived/datadir` in the container.
 
+### Hivemind
+
+- **Image**: `mkysel/hivemind:x86-testnet`
+- **Container Name**: `hivemind_container`
+- **Ports**: Internal only (nginx proxies `7778` to Hivemind HTTP on `8080`).
+- **Notes**: Requires a one-time setup step (`setup --with-apps`) to create DB roles and schemas.
+
 ### Nginx (CORS proxy)
 
 - **Image**: `nginx:alpine`
 - **Container Name**: `pixagram_nginx`
-- **Ports**: Publishes `7777` (Pixagram HTTP), `7778` (Pixagram HAF HTTP), `8092` (Pixagram HAF WS).
+- **Ports**: Publishes `7777` (Pixagram HTTP), `7778` (Hivemind HTTP), `8092` (Pixagram HAF WS).
 - **Config**: `./nginx/conf.d/default.conf`
 
 ## Usage
@@ -38,21 +45,26 @@ This repository contains a `docker-compose.yml` file for running **Pixagram** an
    cd <repository_directory>
    ```
 
-2. Start the container:
+2. Start the containers (the init services run automatically on first start):
    ```bash
-   docker-compose up -d
+   docker compose up -d
+   ```
+
+   If you need to re-run the Hivemind setup later:
+   ```bash
+   docker compose run --rm hivemind_setup
    ```
 
 3. Access the services:
    - Pixagram HTTP: `http://localhost:7777`
    - Pixagram P2P: `tcp://localhost:2001`
-   - Pixagram HAF HTTP: `http://localhost:7778`
+   - Hivemind HTTP: `http://localhost:7778`
    - Pixagram HAF WS: `ws://localhost:8092`
    - Pixagram HAF P2P: `tcp://localhost:2002`
 
-4. To stop the container:
+4. To stop the containers:
    ```bash
-   docker-compose down
+   docker compose down
    ```
 
 ## Notes
@@ -61,3 +73,9 @@ This repository contains a `docker-compose.yml` file for running **Pixagram** an
 - P2P is exposed directly on `2001` and `2002` and is not proxied by nginx.
 - Modify the `nginx/conf.d/default.conf` file to adjust allowed origins/headers if needed.
 - The `./pixagram` and `./pixagram-haf` directories are mounted for persistent storage.
+- If you see `Permission denied` in `pixagram` or `pixagram_haf`, fix ownership on the host:
+  ```bash
+  sudo chown -R 1000:1000 ./pixagram ./pixagram-haf
+  ```
+  These containers run as a non-root user (UID 1000), so the bind-mounted folders must be writable.
+- The `init_permissions` and `hivemind_setup` services are one-shot init steps; they exit after completing.
