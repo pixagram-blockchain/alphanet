@@ -49,9 +49,8 @@ services:
       - -lc
       - ulimit -n 1048576; exec /home/hived_admin/docker_entrypoint.sh /home/hived/bin/hived
 
-    expose:
-      - "7777"
     ports:
+      - "7777:7777"  # HTTP
       - "2001:2001"  # P2P (direct to internet)
 
     volumes:
@@ -84,10 +83,9 @@ services:
     command:
       - --p2p-seed-node=pixagram:2001
 
-    expose:
-      - "7778"  # HTTP
-      - "8092"  # WS
     ports:
+      - "7778:7778"  # HTTP
+      - "8092:8092"  # WS
       - "2002:2002"  # P2P (direct to internet)
 
     volumes:
@@ -119,27 +117,11 @@ services:
         condition: service_started
     command:
       - server
-    expose:
-      - "8080"
+    ports:
+      - "8080:8080"  # HTTP
     environment:
       - POSTGRES_URL=postgresql://hivemind@pixagram_haf:5432/haf_block_log
       - POSTGRES_ADMIN_URL=postgresql://haf_admin@pixagram_haf:5432/haf_block_log
-    networks:
-      - backend
-
-  nginx:
-    image: nginx:alpine
-    container_name: pixagram_nginx
-    depends_on:
-      - pixagram
-      - pixagram_haf
-      - hivemind
-    ports:
-      - "7777:7777"  # Pixagram HTTP
-      - "7778:7778"  # Hivemind HTTP
-      - "8092:8092"  # Pixagram HAF WS
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
     networks:
       - backend
 
