@@ -82,7 +82,7 @@ services:
       - --p2p-seed-node=pixagram:2001
 
     ports:
-      - "7778:7778"  # HTTP
+      - "7779:7778"  # HTTP
       - "8092:8092"  # WS
       - "2002:2002"  # P2P (direct to internet)
 
@@ -116,7 +116,7 @@ services:
     command:
       - server
     ports:
-      - "8080:8080"  # HTTP
+      - "7778:8080"  # HTTP
     environment:
       - POSTGRES_URL=postgresql://hivemind@pixagram_haf:5432/haf_block_log
       - POSTGRES_ADMIN_URL=postgresql://haf_admin@pixagram_haf:5432/haf_block_log

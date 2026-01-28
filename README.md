@@ -20,14 +20,14 @@ This repository contains a `docker-compose.yml` file for running **Pixagram**, *
 
 - **Image**: `mkysel/pixagram-haf:testnet-x86`
 - **Container Name**: `pixagram_haf_container`
-- **Ports**: HTTP is published directly on `7778`. WS is published directly on `8092`. P2P is published directly on `2002`.
+- **Ports**: HTTP is published directly on `7779`. WS is published directly on `8092`. P2P is published directly on `2002`.
 - **Volumes**: Mounts the local directory `./pixagram-haf` to `/home/hived/datadir` in the container.
 
 ### Hivemind
 
 - **Image**: `mkysel/hivemind:x86-testnet`
 - **Container Name**: `hivemind_container`
-- **Ports**: HTTP is published directly on `8080`.
+- **Ports**: HTTP is published directly on `7778` (container port `8080`).
 - **Notes**: Requires a one-time setup step (`setup --with-apps`) to create DB roles and schemas.
 
 ## Usage
@@ -51,9 +51,9 @@ This repository contains a `docker-compose.yml` file for running **Pixagram**, *
 3. Access the services:
    - Pixagram HTTP: `http://localhost:7777`
    - Pixagram P2P: `tcp://localhost:2001`
-   - Hivemind HTTP: `http://localhost:8080`
+   - Hivemind HTTP: `http://localhost:7778`
    - Pixagram HAF WS: `ws://localhost:8092`
-   - Pixagram HAF HTTP: `http://localhost:7778`
+   - Pixagram HAF HTTP: `http://localhost:7779`
    - Pixagram HAF P2P: `tcp://localhost:2002`
 
 4. To stop the containers:
