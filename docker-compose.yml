@@ -6,9 +6,7 @@ services:
     volumes:
       - ./pixagram:/home/hived/datadir
       - ./pixagram-haf:/home/hived/haf_datadir
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      chown -R 1000:1000 /home/hived/datadir /home/hived/haf_datadir
+    command: ["chown", "-R", "1000:1000", "/home/hived/datadir", "/home/hived/haf_datadir"]
     restart: "no"
     networks:
       - backend
@@ -24,7 +22,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command: >
       set -e;
-      until psql "${POSTGRES_ADMIN_URL}" -c 'select 1' >/dev/null 2>&1; do
+      until psql "$$POSTGRES_ADMIN_URL" -c 'select 1' >/dev/null 2>&1; do
         echo "[hivemind_setup] waiting for postgres...";
         sleep 2;
       done;
