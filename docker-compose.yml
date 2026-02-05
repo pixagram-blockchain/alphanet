@@ -99,11 +99,11 @@ services:
       - PG_ACCESS=local haf_block_log haf_maintainer trust\nhost haf_block_log haf_app_admin 172.0.0.0/8 trust\nhost haf_block_log haf_admin 172.0.0.0/8 trust\nhost haf_block_log hivemind 172.0.0.0/8 trust\nhost all pghero 172.0.0.0/8 trust
 
     healthcheck:
-      test: ["CMD-SHELL", "psql -U haf_admin -d haf_block_log -c 'SELECT 1' >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "pgrep hived >/dev/null 2>&1 && psql -U haf_admin -d haf_block_log -c 'SELECT 1' >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
-      retries: 60
-      start_period: 60s
+      retries: 120
+      start_period: 120s
     ulimits:
       nofile:
         soft: 1048576
