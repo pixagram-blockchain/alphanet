@@ -6,7 +6,12 @@ services:
     volumes:
       - ./pixagram:/home/hived/datadir
       - ./pixagram-haf:/home/hived/haf_datadir
-    command: ["chown", "-R", "1000:1000", "/home/hived/datadir", "/home/hived/haf_datadir"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        chown -R 1000:1000 /home/hived/datadir
+        chown 1000:1000 /home/hived/haf_datadir
+        find /home/hived/haf_datadir -maxdepth 1 -mindepth 1 ! -name haf_db_store -exec chown -R 1000:1000 {} +
     restart: "no"
     networks:
       - backend
