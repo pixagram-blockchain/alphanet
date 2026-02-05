@@ -23,15 +23,10 @@ services:
       init_permissions:
         condition: service_completed_successfully
       pixagram_haf:
-        condition: service_started
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      set -e;
-      until psql "$$POSTGRES_ADMIN_URL" -c 'select 1' >/dev/null 2>&1; do
-        echo "[hivemind_setup] waiting for postgres...";
-        sleep 2;
-      done;
-      exec /home/hivemind/docker_entrypoint.sh setup --with-apps
+        condition: service_healthy
+    command:
+      - setup
+      - --with-apps
     environment:
       - POSTGRES_URL=postgresql://hivemind@pixagram_haf:5432/haf_block_log
       - POSTGRES_ADMIN_URL=postgresql://haf_admin@pixagram_haf:5432/haf_block_log
@@ -103,6 +98,12 @@ services:
       - HIVED_UID=1000
       - PG_ACCESS=local haf_block_log haf_maintainer trust\nhost haf_block_log haf_app_admin 172.0.0.0/8 trust\nhost haf_block_log haf_admin 172.0.0.0/8 trust\nhost haf_block_log hivemind 172.0.0.0/8 trust\nhost all pghero 172.0.0.0/8 trust
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U haf_admin -d haf_block_log"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     ulimits:
       nofile:
         soft: 1048576
