@@ -99,11 +99,11 @@ services:
       - PG_ACCESS=local haf_block_log haf_maintainer trust\nhost haf_block_log haf_app_admin 172.0.0.0/8 trust\nhost haf_block_log haf_admin 172.0.0.0/8 trust\nhost haf_block_log hivemind 172.0.0.0/8 trust\nhost all pghero 172.0.0.0/8 trust
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U haf_admin -d haf_block_log"]
-      interval: 5s
+      test: ["CMD-SHELL", "psql -U haf_admin -d haf_block_log -c 'SELECT 1' >/dev/null 2>&1"]
+      interval: 10s
       timeout: 5s
-      retries: 30
-      start_period: 30s
+      retries: 60
+      start_period: 60s
     ulimits:
       nofile:
         soft: 1048576
@@ -119,13 +119,17 @@ services:
         condition: service_completed_successfully
       pixagram_haf:
         condition: service_started
+    entrypoint: ["/bin/bash", "-c"]
     command:
-      - server
+      - |
+        psql "$$POSTGRES_ADMIN_URL" -c "DROP FUNCTION IF EXISTS hivemind_endpoints.home();" 2>/dev/null
+        exec /home/hivemind/docker_entrypoint.sh server
     ports:
       - "7778:8080"  # HTTP
     environment:
       - POSTGRES_URL=postgresql://hivemind@pixagram_haf:5432/haf_block_log
       - POSTGRES_ADMIN_URL=postgresql://haf_admin@pixagram_haf:5432/haf_block_log
+      - PGRST_DB_ROOT_SPEC=home
     networks:
       - backend
 
