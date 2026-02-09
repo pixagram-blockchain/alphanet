@@ -133,6 +133,22 @@ services:
     networks:
       - backend
 
+  jussi:
+    image: openresty/openresty:alpine
+    container_name: jussi_container
+    depends_on:
+      pixagram:
+        condition: service_started
+      hivemind:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./jussi/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
+    restart: unless-stopped
+    networks:
+      - backend
+
 networks:
   backend:
     driver: bridge
