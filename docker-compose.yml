@@ -145,7 +145,7 @@ services:
       - backend
 
   ssl-proxy:
-    image: nginx:alpine
+    image: caddy:alpine
     container_name: ssl_proxy_container
     depends_on:
       - jussi
@@ -153,25 +153,16 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ./ssl-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ssl_certs:/etc/nginx/certs
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        if [ ! -f /etc/nginx/certs/selfsigned.crt ]; then
-          apk add --no-cache openssl
-          openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-            -keyout /etc/nginx/certs/selfsigned.key \
-            -out /etc/nginx/certs/selfsigned.crt \
-            -subj "/CN=rpc-proxy"
-        fi
-        exec nginx -g "daemon off;"
+      - ./ssl-proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     restart: unless-stopped
     networks:
       - backend
 
 volumes:
-  ssl_certs:
+  caddy_data:
+  caddy_config:
 
 networks:
   backend:
