@@ -136,18 +136,42 @@ services:
   jussi:
     image: openresty/openresty:alpine
     container_name: jussi_container
-    depends_on:
-      pixagram:
-        condition: service_started
-      hivemind:
-        condition: service_started
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     volumes:
       - ./jussi/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
     restart: unless-stopped
     networks:
       - backend
+
+  ssl-proxy:
+    image: nginx:alpine
+    container_name: ssl_proxy_container
+    depends_on:
+      - jussi
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./ssl-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ssl_certs:/etc/nginx/certs
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ ! -f /etc/nginx/certs/selfsigned.crt ]; then
+          apk add --no-cache openssl
+          openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+            -keyout /etc/nginx/certs/selfsigned.key \
+            -out /etc/nginx/certs/selfsigned.crt \
+            -subj "/CN=rpc-proxy"
+        fi
+        exec nginx -g "daemon off;"
+    restart: unless-stopped
+    networks:
+      - backend
+
+volumes:
+  ssl_certs:
 
 networks:
   backend:
