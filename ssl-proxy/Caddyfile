@@ -1,3 +1,7 @@
 pixagram.dev {
 	reverse_proxy jussi_container:8080
 }
+
+http://pixagram.dev {
+	reverse_proxy jussi_container:8080
+}
