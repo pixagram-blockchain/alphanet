@@ -78,6 +78,7 @@ services:
       pixagram:
         condition: service_started
 
+    entrypoint: /home/hived/datadir/entrypoint_wrapper.sh
     command:
       - --p2p-seed-node=pixagram:2001
 
@@ -104,6 +105,7 @@ services:
       timeout: 5s
       retries: 120
       start_period: 120s
+    restart: unless-stopped
     ulimits:
       nofile:
         soft: 1048576
