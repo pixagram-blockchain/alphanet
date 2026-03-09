@@ -113,6 +113,23 @@ services:
     networks:
       - backend
 
+  hivemind_sync:
+    image: mkysel/hivemind:x86-testnet
+    container_name: hivemind_sync_container
+    depends_on:
+      hivemind_setup:
+        condition: service_completed_successfully
+      pixagram_haf:
+        condition: service_started
+    command:
+      - sync
+    environment:
+      - POSTGRES_URL=postgresql://hivemind@pixagram_haf:5432/haf_block_log
+      - POSTGRES_ADMIN_URL=postgresql://haf_admin@pixagram_haf:5432/haf_block_log
+    restart: unless-stopped
+    networks:
+      - backend
+
   hivemind:
     image: mkysel/hivemind:x86-testnet
     container_name: hivemind_container
