@@ -152,6 +152,23 @@ services:
     networks:
       - backend
 
+  bigmac-feed:
+    image: mkysel/bigmac-feed:latest
+    container_name: bigmac_feed_container
+    depends_on:
+      pixagram:
+        condition: service_started
+    command:
+      - --witness=initminer
+      - --rpc=http://jussi:8080
+      - --token-price=0.06
+      - --interval=1h
+    environment:
+      - WITNESS_WIF=${WITNESS_WIF}
+    restart: unless-stopped
+    networks:
+      - backend
+
   jussi:
     image: openresty/openresty:alpine
     container_name: jussi_container
