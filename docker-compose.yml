@@ -123,9 +123,11 @@ services:
         condition: service_started
     command:
       - sync
+      - --community-start-block=1
     environment:
       - POSTGRES_URL=postgresql://hivemind@pixagram_haf:5432/haf_block_log
       - POSTGRES_ADMIN_URL=postgresql://haf_admin@pixagram_haf:5432/haf_block_log
+      - COMMUNITY_START_BLOCK=1
     restart: unless-stopped
     networks:
       - backend
