@@ -35,7 +35,7 @@ services:
       - backend
 
   pixagram:
-    image: mkysel/pixagram:testnet-x86
+    image: pixadock/pixagram:pre-mainnet
     container_name: pixagram_container
 
     depends_on:
@@ -69,7 +69,7 @@ services:
       - backend
 
   pixagram_haf:
-    image: mkysel/pixagram-haf:testnet-x86
+    image: pixadock/pixagram-haf:pre-mainnet
     container_name: pixagram_haf_container
 
     depends_on:
@@ -155,7 +155,7 @@ services:
       - backend
 
   bigmac-feed:
-    image: mkysel/bigmac-feed:latest
+    image: pixadock/bigmac-feed:latest
     container_name: bigmac_feed_container
     depends_on:
       pixagram:

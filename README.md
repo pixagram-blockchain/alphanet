@@ -1,25 +1,25 @@
 # Pixagram Alphanet
 
-Docker Compose stack for running the Pixagram testnet: blockchain node, HAF indexer, Hivemind social layer, API proxy, price feed, and SSL.
+Docker Compose stack for running the Pixagram pre-mainnet: blockchain node, HAF indexer, Hivemind social layer, API proxy, price feed, and SSL.
 
 ## Architecture
 
 ```
-Internet → Caddy (SSL) → Jussi (API proxy + token translation) → hived / Hivemind
+Internet → Caddy (SSL) → Jussi (API proxy + field-name translation) → hived / Hivemind
 ```
 
-Jussi routes JSON-RPC requests to the correct backend and translates between chain-native names (`reward_hive`, `TESTS`, `TBD`) and Pixagram names (`reward_pixa`, `PIXA`, `PXS`) bidirectionally.
+Jussi routes JSON-RPC requests to the correct backend (hived for chain queries, Hivemind for social queries) and translates between chain-internal field names (`reward_hive`, `hbd_balance`, …) and Pixagram field names (`reward_pixa`, `pxs_balance`, …) bidirectionally. Asset symbols (`PIXA`, `PXS`) are emitted natively by hived and not translated.
 
 ## Services
 
 | Service | Container | Image | Ports | Description |
 |---|---|---|---|---|
-| **pixagram** | `pixagram_container` | `mkysel/pixagram:testnet-x86` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
-| **pixagram_haf** | `pixagram_haf_container` | `mkysel/pixagram-haf:testnet-x86` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
+| **pixagram** | `pixagram_container` | `pixadock/pixagram:pre-mainnet` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
+| **pixagram_haf** | `pixagram_haf_container` | `pixadock/pixagram-haf:pre-mainnet` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
 | **hivemind_sync** | `hivemind_sync_container` | `mkysel/hivemind:x86-testnet` | — | Block processor, indexes HAF data for social queries |
 | **hivemind** | `hivemind_container` | `mkysel/hivemind:x86-testnet` | 7778 (HTTP) | PostgREST API server for social queries (bridge, follow, tags) |
-| **jussi** | `jussi_container` | `openresty/openresty:alpine` | 8080 (internal) | API proxy: routes requests + PIXA/PXS token translation |
-| **bigmac-feed** | `bigmac_feed_container` | `mkysel/bigmac-feed:latest` | — | Witness price feed (1 PXS = 1 Big Mac) |
+| **jussi** | `jussi_container` | `openresty/openresty:alpine` | 8080 (internal) | API proxy: routes requests + field-name translation |
+| **bigmac-feed** | `bigmac_feed_container` | `pixadock/bigmac-feed:latest` | — | Witness price feed (1 PXS = 1 Big Mac) |
 | **ssl-proxy** | `ssl_proxy_container` | `caddy:alpine` | 80, 443 | TLS termination with auto-cert |
 
 ### Init services (run once)
@@ -51,26 +51,26 @@ docker compose up -d
 | Hivemind (direct) | `http://localhost:7778` |
 | HAF node (direct) | `http://localhost:7779` |
 
-### Token Translation (Jussi)
-
-The API proxy automatically translates between internal chain names and Pixagram names:
-
-| Chain (internal) | API (external) |
-|---|---|
-| `TESTS` | `PIXA` |
-| `TBD` | `PXS` |
-| `HBD` | `PXS` |
-| `reward_hive` | `reward_pixa` |
-| `reward_hbd` | `reward_pxs` |
-| `hbd_balance` | `pxs_balance` |
-| `total_vesting_fund_hive` | `total_vesting_fund_pixa` |
-| ... | (see `jussi/nginx.conf` for full list) |
-
-This applies to both requests and responses. Broadcast transactions are also translated so clients can sign and send using PIXA/PXS.
-
 ### Jussi Routing
 
 Requests are routed to Hivemind for social queries (`bridge.*`, `follow_api.*`, `tags_api.*`, and specific `condenser_api` methods like `get_content`, `get_followers`, `get_trending_tags`, etc.). Everything else goes to hived. See `jussi/nginx.conf` for the full routing table.
+
+### Field Name Translation
+
+Hived's source still uses Hive-derived field names (`hbd_balance`, `reward_hive`, `total_vesting_fund_hive`, …). Jussi rewrites these on the wire so external clients see Pixagram-flavored names:
+
+| Chain (internal) | API (external) |
+|---|---|
+| `reward_hive` | `reward_pixa` |
+| `reward_hbd` | `reward_pxs` |
+| `hbd_balance` | `pxs_balance` |
+| `hbd_exchange_rate` | `pxs_exchange_rate` |
+| `total_vesting_fund_hive` | `total_vesting_fund_pixa` |
+| `current_hbd_supply` | `current_pxs_supply` |
+| `dhf_interval_ledger` | `dpf_interval_ledger` |
+| ... | (see `jussi/nginx.conf` for full list) |
+
+Translation runs in both directions, including broadcast transactions (signatures are over the binary NAI representation, not JSON, so renames are safe). **Asset symbols (`PIXA`, `PXS`) are not translated** — pre-mainnet hived emits them natively.
 
 ## Price Feed (Big Mac Index)
 
