@@ -46,7 +46,7 @@ docker compose up -d
 
 | Endpoint | URL |
 |---|---|
-| Public API (via Caddy) | `https://pixagram.dev` |
+| Public API (via Caddy) | `https://api.pixagram.com` |
 | Pixagram node (direct) | `http://localhost:7777` |
 | Hivemind (direct) | `http://localhost:7778` |
 | HAF node (direct) | `http://localhost:7779` |
@@ -70,7 +70,17 @@ Hived's source still uses Hive-derived field names (`hbd_balance`, `reward_hive`
 | `dhf_interval_ledger` | `dpf_interval_ledger` |
 | ... | (see `jussi/nginx.conf` for full list) |
 
-Translation runs in both directions, including broadcast transactions (signatures are over the binary NAI representation, not JSON, so renames are safe). **Asset symbols (`PIXA`, `PXS`) are not translated** — pre-mainnet hived emits them natively.
+Translation runs in both directions, including broadcast transactions (signatures are over the binary NAI representation, not JSON, so renames are safe).
+
+**Defensive response-side symbol renames** also run — pre-mainnet hived emits PIXA/PXS natively for new ops, but legacy code paths can still leak old symbol names; jussi rewrites those before the client sees them:
+
+| Chain (legacy leak) | API (external) |
+|---|---|
+| `TESTS` | `PIXA` |
+| `TBD` | `PXS` |
+| `HBD` | `PXS` |
+
+These are response-only — request-side symbol renames are intentionally omitted because the chain natively expects PIXA/PXS in broadcasts.
 
 ## Price Feed (Big Mac Index)
 
@@ -109,7 +119,7 @@ docker compose logs -f bigmac_feed     # Price feed
 docker compose restart jussi
 
 # Test the API
-curl -s -X POST https://pixagram.dev \
+curl -s -X POST https://api.pixagram.com \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"condenser_api.get_dynamic_global_properties","params":[],"id":1}'
 ```
