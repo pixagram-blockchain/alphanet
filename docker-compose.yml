@@ -17,7 +17,7 @@ services:
       - backend
 
   hivemind_setup:
-    image: mkysel/hivemind:x86-testnet
+    image: pixadock/hivemind:pre-mainnet
     container_name: hivemind_setup
     depends_on:
       init_permissions:
@@ -114,7 +114,7 @@ services:
       - backend
 
   hivemind_sync:
-    image: mkysel/hivemind:x86-testnet
+    image: pixadock/hivemind:pre-mainnet
     container_name: hivemind_sync_container
     depends_on:
       hivemind_setup:
@@ -133,7 +133,7 @@ services:
       - backend
 
   hivemind:
-    image: mkysel/hivemind:x86-testnet
+    image: pixadock/hivemind:pre-mainnet
     container_name: hivemind_container
     depends_on:
       hivemind_setup:
