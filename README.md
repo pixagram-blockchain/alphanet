@@ -124,6 +124,43 @@ curl -s -X POST https://api.pixagram.com \
   -d '{"jsonrpc":"2.0","method":"condenser_api.get_dynamic_global_properties","params":[],"id":1}'
 ```
 
+## Upgrading an existing deployment to v1.0.0
+
+v1.0.0 moves to hived/HAF 1.28.7 and hivemind 1.28.6. Two things change that an
+existing datadir does not survive on its own.
+
+**1. The `metadata` plugin is now required.** Up to 1.28.5 `account_metadata_object`
+was a core chain object, so account `json_metadata` / `posting_json_metadata`
+(display names, avatars) were always stored. 1.28.7 moved that index into a
+plugin. Without it every account profile reads back empty from the API.
+
+Enabling it adds a new chainbase index, so you need **both** steps — either one
+alone fails:
+
+```bash
+docker compose down
+
+# 1. drop the state file (keeping it -> "Inconsistency occurs. A new index is
+#    created, but other indexes are found in shared_memory_file")
+rm -f pixagram/blockchain/shared_memory.bin
+rm -rf pixagram/blockchain/account-history-rocksdb-storage \
+       pixagram/blockchain/comments-rocksdb-storage
+
+# 2. replay once (without it -> "Headblock and statefile are inconsistent,
+#    need to start hived with --replay-blockchain")
+HIVED_EXTRA_ARGS=--replay-blockchain docker compose up -d pixagram
+
+# once it logs "entering live mode", start the rest normally
+docker compose up -d
+```
+
+`block_log*` is the chain itself — never delete it. Everything else under
+`blockchain/` is derived state and is rebuilt by the replay.
+
+**2. `post_id` is gone from bridge API responses.** Upstream removed internal
+post and vote IDs in 1.28.6, so `bridge.get_ranked_posts`, `get_account_posts`
+and `get_post` now return `post_id: null`. Check any frontend that reads it.
+
 ## Notes
 
 - The `pixagram_haf` service has `restart: unless-stopped` to auto-recover from crashes

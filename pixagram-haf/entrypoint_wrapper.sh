@@ -5,7 +5,10 @@
 # which resets the soft nofile limit to 1024. During blockchain replay, the
 # SQL serializer opens many parallel DB connections and exceeds this limit.
 
-# Write system limits (need sudo since we run as haf_admin)
+# NOTE (HAF 1.28.7 / v1.0.0): the image no longer has a haf_admin user. The
+# container runs as `hived` and the entrypoint moved to /home/hived/.
+
+# Write system limits (need sudo; the hived user has passwordless sudo here)
 echo '* soft nofile 1048576' | sudo tee /etc/security/limits.d/99-nofile.conf > /dev/null
 echo '* hard nofile 1048576' | sudo tee -a /etc/security/limits.d/99-nofile.conf > /dev/null
 
@@ -18,4 +21,4 @@ if [ -f "$PG_CTL" ] && [ ! -f "${PG_CTL}.real" ]; then
 fi
 
 ulimit -n 1048576
-exec /home/haf_admin/docker_entrypoint.sh "$@"
+exec /home/hived/docker_entrypoint.sh "$@"

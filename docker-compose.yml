@@ -17,7 +17,7 @@ services:
       - backend
 
   hivemind_setup:
-    image: pixadock/hivemind:pre-mainnet
+    image: pixadock/hivemind:v1.0.0
     container_name: hivemind_setup
     depends_on:
       init_permissions:
@@ -35,7 +35,7 @@ services:
       - backend
 
   pixagram:
-    image: pixadock/pixagram:pre-mainnet
+    image: pixadock/pixagram:v1.0.0
     container_name: pixagram_container
 
     depends_on:
@@ -45,7 +45,11 @@ services:
     entrypoint:
       - /bin/bash
       - -lc
-      - ulimit -n 1048576; exec /home/hived_admin/docker_entrypoint.sh /home/hived/bin/hived
+      # HIVED_EXTRA_ARGS lets you pass one-off flags without editing this file,
+      # e.g. a replay after enabling a plugin:
+      #   rm pixagram/blockchain/shared_memory.bin
+      #   HIVED_EXTRA_ARGS=--replay-blockchain docker compose up -d pixagram
+      - ulimit -n 1048576; exec /home/hived/docker_entrypoint.sh /home/hived/bin/hived ${HIVED_EXTRA_ARGS:-}
 
     ports:
       - "7777:7777"  # HTTP
@@ -69,7 +73,7 @@ services:
       - backend
 
   pixagram_haf:
-    image: pixadock/pixagram-haf:pre-mainnet
+    image: pixadock/pixagram-haf:v1.0.0
     container_name: pixagram_haf_container
 
     depends_on:
@@ -114,7 +118,7 @@ services:
       - backend
 
   hivemind_sync:
-    image: pixadock/hivemind:pre-mainnet
+    image: pixadock/hivemind:v1.0.0
     container_name: hivemind_sync_container
     depends_on:
       hivemind_setup:
@@ -133,7 +137,7 @@ services:
       - backend
 
   hivemind:
-    image: pixadock/hivemind:pre-mainnet
+    image: pixadock/hivemind:v1.0.0
     container_name: hivemind_container
     depends_on:
       hivemind_setup:
