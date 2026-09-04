@@ -14,10 +14,10 @@ Jussi routes JSON-RPC requests to the correct backend (hived for chain queries, 
 
 | Service | Container | Image | Ports | Description |
 |---|---|---|---|---|
-| **pixagram** | `pixagram_container` | `pixadock/pixagram:pre-mainnet` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
-| **pixagram_haf** | `pixagram_haf_container` | `pixadock/pixagram-haf:pre-mainnet` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
-| **hivemind_sync** | `hivemind_sync_container` | `mkysel/hivemind:x86-testnet` | — | Block processor, indexes HAF data for social queries |
-| **hivemind** | `hivemind_container` | `mkysel/hivemind:x86-testnet` | 7778 (HTTP) | PostgREST API server for social queries (bridge, follow, tags) |
+| **pixagram** | `pixagram_container` | `pixadock/pixagram:mainnet` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
+| **pixagram_haf** | `pixagram_haf_container` | `pixadock/pixagram-haf:mainnet` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
+| **hivemind_sync** | `hivemind_sync_container` | `pixadock/hivemind:mainnet` | — | Block processor, indexes HAF data for social queries |
+| **hivemind** | `hivemind_container` | `pixadock/hivemind:mainnet` | 7778 (HTTP) | PostgREST API server for social queries (bridge, follow, tags) |
 | **jussi** | `jussi_container` | `openresty/openresty:alpine` | 8080 (internal) | API proxy: routes requests + field-name translation |
 | **bigmac-feed** | `bigmac_feed_container` | `pixadock/bigmac-feed:latest` | — | Witness price feed (1 PXS = 1 Big Mac) |
 | **ssl-proxy** | `ssl_proxy_container` | `caddy:alpine` | 80, 443 | TLS termination with auto-cert |

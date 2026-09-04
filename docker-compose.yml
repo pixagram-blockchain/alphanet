@@ -17,7 +17,7 @@ services:
       - backend
 
   hivemind_setup:
-    image: pixadock/hivemind:v1.0.0
+    image: pixadock/hivemind:mainnet
     container_name: hivemind_setup
     depends_on:
       init_permissions:
@@ -35,7 +35,7 @@ services:
       - backend
 
   pixagram:
-    image: pixadock/pixagram:v1.0.0
+    image: pixadock/pixagram:mainnet
     container_name: pixagram_container
 
     depends_on:
@@ -73,7 +73,7 @@ services:
       - backend
 
   pixagram_haf:
-    image: pixadock/pixagram-haf:v1.0.0
+    image: pixadock/pixagram-haf:mainnet
     container_name: pixagram_haf_container
 
     depends_on:
@@ -118,7 +118,7 @@ services:
       - backend
 
   hivemind_sync:
-    image: pixadock/hivemind:v1.0.0
+    image: pixadock/hivemind:mainnet
     container_name: hivemind_sync_container
     depends_on:
       hivemind_setup:
@@ -137,7 +137,7 @@ services:
       - backend
 
   hivemind:
-    image: pixadock/hivemind:v1.0.0
+    image: pixadock/hivemind:mainnet
     container_name: hivemind_container
     depends_on:
       hivemind_setup:
