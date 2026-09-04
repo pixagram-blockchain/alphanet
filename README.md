@@ -1,5 +1,17 @@
 # Pixagram Alphanet
 
+**Internal deployment repo.** This is what actually runs on our own nodes, keys
+and bootstrap settings included. It is not the thing to hand to an operator.
+
+Public equivalents:
+
+| Repo | For |
+|---|---|
+| [pixagram-blockchain/pixagram-node](https://github.com/pixagram-blockchain/pixagram-node) | Running a public API node |
+| [pixagram-blockchain/witness](https://github.com/pixagram-blockchain/witness) | Running a witness (block producer) |
+
+Changes made here do not reach those repos automatically.
+
 Docker Compose stack for running the Pixagram pre-mainnet: blockchain node, HAF indexer, Hivemind social layer, API proxy, price feed, and SSL.
 
 ## Architecture
@@ -14,10 +26,10 @@ Jussi routes JSON-RPC requests to the correct backend (hived for chain queries, 
 
 | Service | Container | Image | Ports | Description |
 |---|---|---|---|---|
-| **pixagram** | `pixagram_container` | `pixadock/pixagram:pre-mainnet` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
-| **pixagram_haf** | `pixagram_haf_container` | `pixadock/pixagram-haf:pre-mainnet` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
-| **hivemind_sync** | `hivemind_sync_container` | `mkysel/hivemind:x86-testnet` | — | Block processor, indexes HAF data for social queries |
-| **hivemind** | `hivemind_container` | `mkysel/hivemind:x86-testnet` | 7778 (HTTP) | PostgREST API server for social queries (bridge, follow, tags) |
+| **pixagram** | `pixagram_container` | `pixadock/pixagram:mainnet` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
+| **pixagram_haf** | `pixagram_haf_container` | `pixadock/pixagram-haf:mainnet` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
+| **hivemind_sync** | `hivemind_sync_container` | `pixadock/hivemind:mainnet` | — | Block processor, indexes HAF data for social queries |
+| **hivemind** | `hivemind_container` | `pixadock/hivemind:mainnet` | 7778 (HTTP) | PostgREST API server for social queries (bridge, follow, tags) |
 | **jussi** | `jussi_container` | `openresty/openresty:alpine` | 8080 (internal) | API proxy: routes requests + field-name translation |
 | **bigmac-feed** | `bigmac_feed_container` | `pixadock/bigmac-feed:latest` | — | Witness price feed (1 PXS = 1 Big Mac) |
 | **ssl-proxy** | `ssl_proxy_container` | `caddy:alpine` | 80, 443 | TLS termination with auto-cert |
@@ -123,6 +135,43 @@ curl -s -X POST https://api.pixagram.com \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"condenser_api.get_dynamic_global_properties","params":[],"id":1}'
 ```
+
+## Upgrading an existing deployment to v1.0.0
+
+v1.0.0 moves to hived/HAF 1.28.7 and hivemind 1.28.6. Two things change that an
+existing datadir does not survive on its own.
+
+**1. The `metadata` plugin is now required.** Up to 1.28.5 `account_metadata_object`
+was a core chain object, so account `json_metadata` / `posting_json_metadata`
+(display names, avatars) were always stored. 1.28.7 moved that index into a
+plugin. Without it every account profile reads back empty from the API.
+
+Enabling it adds a new chainbase index, so you need **both** steps — either one
+alone fails:
+
+```bash
+docker compose down
+
+# 1. drop the state file (keeping it -> "Inconsistency occurs. A new index is
+#    created, but other indexes are found in shared_memory_file")
+rm -f pixagram/blockchain/shared_memory.bin
+rm -rf pixagram/blockchain/account-history-rocksdb-storage \
+       pixagram/blockchain/comments-rocksdb-storage
+
+# 2. replay once (without it -> "Headblock and statefile are inconsistent,
+#    need to start hived with --replay-blockchain")
+HIVED_EXTRA_ARGS=--replay-blockchain docker compose up -d pixagram
+
+# once it logs "entering live mode", start the rest normally
+docker compose up -d
+```
+
+`block_log*` is the chain itself — never delete it. Everything else under
+`blockchain/` is derived state and is rebuilt by the replay.
+
+**2. `post_id` is gone from bridge API responses.** Upstream removed internal
+post and vote IDs in 1.28.6, so `bridge.get_ranked_posts`, `get_account_posts`
+and `get_post` now return `post_id: null`. Check any frontend that reads it.
 
 ## Notes
 
