@@ -178,7 +178,7 @@ services:
       # meant to sign for.
       - --witness=${WITNESS_ACCOUNT:-initminer}
       - --rpc=http://jussi:8080
-      - --token-price=0.06
+      - --token-price=0.12
       - --interval=1h
     environment:
       - WITNESS_WIF=${WITNESS_WIF}
