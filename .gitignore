@@ -1,0 +1,25 @@
+# Secrets. The witness WIF lives here - it must never reach the repository.
+.env
+*.wif
+*.key
+
+# hived datadir - chain state, peer list, logs
+pixagram/blockchain/
+pixagram/p2p/
+pixagram/logs/
+pixagram/snapshot/
+pixagram/*.log
+
+# HAF datadir - chain state plus the PostgreSQL cluster
+pixagram-haf/blockchain/
+pixagram-haf/haf_db_store/
+pixagram-haf/p2p/
+pixagram-haf/logs/
+pixagram-haf/snapshot/
+pixagram-haf/*.log
+
+# Local overrides
+docker-compose.override.yml
+*.local
+
+.DS_Store

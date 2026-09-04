@@ -1,5 +1,17 @@
 # Pixagram Alphanet
 
+**Internal deployment repo.** This is what actually runs on our own nodes, keys
+and bootstrap settings included. It is not the thing to hand to an operator.
+
+Public equivalents:
+
+| Repo | For |
+|---|---|
+| [pixagram-blockchain/pixagram-node](https://github.com/pixagram-blockchain/pixagram-node) | Running a public API node |
+| [pixagram-blockchain/witness](https://github.com/pixagram-blockchain/witness) | Running a witness (block producer) |
+
+Changes made here do not reach those repos automatically.
+
 Docker Compose stack for running the Pixagram pre-mainnet: blockchain node, HAF indexer, Hivemind social layer, API proxy, price feed, and SSL.
 
 ## Architecture
