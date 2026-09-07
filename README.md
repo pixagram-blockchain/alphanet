@@ -41,6 +41,80 @@ Jussi routes JSON-RPC requests to the correct backend (hived for chain queries, 
 | **init_permissions** | Sets file ownership for bind mounts |
 | **hivemind_setup** | Creates Hivemind DB schemas and roles |
 
+## Required: a synchronised clock
+
+Every machine running this stack must have an NTP daemon. Check it before
+`docker compose up`, not after — these nodes produce blocks, and a drifting
+clock on a block producer silently costs **other** witnesses their blocks.
+
+Block slots are 3 seconds and hived decides when to produce from the local
+system clock. A clock that is a second or two slow emits its block that late in
+real time, so it reaches peers at the boundary of the *next* witness's slot.
+That witness has not seen it, builds on the previous head, produces a competing
+block at the same height and loses the fork race — and the miss is recorded
+against **them**, not against the node with the bad clock. Your own
+`total_missed` stays clean the whole time, so nothing in your own numbers will
+tell you.
+
+On 2026-09-06 one of our own witnesses was found running 2.672 s slow. It
+accounted for 121 of the 123 same-height block collisions on the network and
+109 missed blocks for the witness furthest from it. The box was a Debian 12
+image with no time daemon installed at all. After adding one the offset fell to
+3 ms and the misses stopped outright: 4163 blocks from 4163 slots over the next
+3.5 hours, none empty. No hived restart was needed — the clock step is applied
+underneath a running node, and stepping *forward* is safe for a producer since
+it can only skip a slot, never double-sign.
+
+**Check:**
+
+```bash
+timedatectl | grep -E 'synchronized|NTP service'
+```
+
+You want `System clock synchronized: yes` and an active service. Our Ubuntu
+boxes use `systemd-timesyncd` and the GCP images use `chrony`, both enabled out
+of the box. **The Debian 12 images ship with nothing** — both IBM boxes were
+affected, one by 2.7 s and one by 12.4 s.
+
+**If it is missing:**
+
+```bash
+sudo apt-get update && sudo apt-get install -y chrony
+sudo systemctl enable --now chrony
+```
+
+`enable`, not just `start`, or it will not survive a reboot.
+
+**Verify the real offset from the machine itself.** Comparing `date` over SSH
+from a laptop measures your connection latency, not the clock — it produces
+readings that grow in the order you polled the hosts.
+
+```bash
+python3 - <<'PY'
+import socket, struct, time, statistics
+def probe(host):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(4)
+    try:
+        t1 = time.time(); s.sendto(b'\x1b' + 47 * b'\0', (host, 123))
+        d, _ = s.recvfrom(1024); t4 = time.time()
+    finally:
+        s.close()
+    u = struct.unpack('!12I', d[:48])
+    t2 = u[8] + u[9] / 2**32 - 2208988800
+    t3 = u[10] + u[11] / 2**32 - 2208988800
+    return ((t2 - t1) + (t3 - t4)) / 2
+offsets = []
+for host in ('pool.ntp.org', 'time.google.com', 'time.cloudflare.com'):
+    for _ in range(3):
+        try: offsets.append(probe(host))
+        except Exception: pass
+print(f'clock offset: {statistics.median(offsets):+.4f}s  ({len(offsets)} samples)'
+      if offsets else 'could not reach any NTP server')
+PY
+```
+
+Under ~50 ms is fine. Past half a second you are costing other witnesses blocks.
+
 ## Setup
 
 ```bash
