@@ -247,6 +247,44 @@ docker compose up -d
 post and vote IDs in 1.28.6, so `bridge.get_ranked_posts`, `get_account_posts`
 and `get_post` now return `post_id: null`. Check any frontend that reads it.
 
+## Upgrading to 1.29.0 (hardfork 29)
+
+Hardfork 29 activates on **2026-09-18 12:00:00 UTC**. Every hived on the network -
+witnesses and API nodes alike - must run 1.29.0 before then; after activation the network
+rejects blocks and state produced by older versions.
+
+hived stamps its build configuration into `shared_memory.bin` and refuses a state file
+written by another version ("Blockchain config from shared memory file mismatch current
+version of app"), so a plain `restart` is not enough. HAF's serializer likewise cannot
+replay into a database that already holds blocks. The upgrade is therefore: replay the
+consensus node from its block log, and rebuild HAF and Hivemind from scratch - the whole
+chain resyncs in minutes.
+
+```bash
+git pull                                            # 1.29.0 tags in docker-compose.yml
+docker compose pull pixagram pixagram_haf
+
+# 1. consensus node: rebuild the state file from block_log (~20 s), then start normally
+docker compose stop pixagram
+HIVED_EXTRA_ARGS="--force-replay --exit-before-sync" docker compose run --rm --no-deps pixagram
+docker compose up -d pixagram
+
+# 2. HAF + Hivemind: drop derived state and let them resync together
+docker compose stop pixagram_haf hivemind_sync hivemind hivemind_setup
+docker compose rm -f pixagram_haf hivemind_sync hivemind hivemind_setup
+sudo rm -rf pixagram-haf/haf_db_store pixagram-haf/blockchain pixagram-haf/logs pixagram-haf/p2p
+docker compose up -d
+
+# 3. Jussi keeps the old Hivemind address and answers 502 on bridge.* until restarted
+docker compose restart jussi
+```
+
+HAF is healthy within a few minutes; `hivemind_sync` logs live `blocks N-N` lines after
+10-15 minutes. Start Hivemind together with HAF as above - started against an
+already-synced HAF, its massive-to-live hand-over has tripped on
+`hive_notification_cache_pkey`. On a witness host the consensus node is offline for about
+a minute: at most one or two missed slots.
+
 ## Notes
 
 - The `pixagram_haf` service has `restart: unless-stopped` to auto-recover from crashes
