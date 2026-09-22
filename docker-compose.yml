@@ -166,7 +166,7 @@ services:
       - backend
 
   bigmac-feed:
-    image: pixadock/bigmac-feed:v1.0.2
+    image: pixadock/bigmac-feed:v1.0.3
     container_name: bigmac_feed_container
     depends_on:
       pixagram:
