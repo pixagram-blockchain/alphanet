@@ -1,7 +1,9 @@
 api.pixagram.com {
+	encode zstd gzip
 	reverse_proxy jussi_container:8080
 }
 
 http://api.pixagram.com {
+	encode zstd gzip
 	reverse_proxy jussi_container:8080
 }
