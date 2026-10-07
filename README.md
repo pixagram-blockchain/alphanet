@@ -26,8 +26,8 @@ Jussi routes JSON-RPC requests to the correct backend (hived for chain queries, 
 
 | Service | Container | Image | Ports | Description |
 |---|---|---|---|---|
-| **pixagram** | `pixagram_container` | `pixadock/pixagram:mainnet` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
-| **pixagram_haf** | `pixagram_haf_container` | `pixadock/pixagram-haf:mainnet` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
+| **pixagram** | `pixagram_container` | `pixadock/pixagram:1.30.0` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
+| **pixagram_haf** | `pixagram_haf_container` | `pixadock/pixagram-haf:1.30.0` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
 | **hivemind_sync** | `hivemind_sync_container` | `pixadock/hivemind:mainnet` | — | Block processor, indexes HAF data for social queries |
 | **hivemind** | `hivemind_container` | `pixadock/hivemind:mainnet` | 7778 (HTTP) | PostgREST API server for social queries (bridge, follow, tags) |
 | **jussi** | `jussi_container` | `openresty/openresty:alpine` | 8080 (internal) | API proxy: routes requests + field-name translation |
@@ -247,10 +247,39 @@ docker compose up -d
 post and vote IDs in 1.28.6, so `bridge.get_ranked_posts`, `get_account_posts`
 and `get_post` now return `post_id: null`. Check any frontend that reads it.
 
+## Upgrading to 1.30.0 (hardfork 30)
+
+Hardfork 30 activated on **2026-10-07 12:00:00 UTC** at block 949330. Every hived on the
+network - witnesses and API nodes alike - must run 1.30.0; a node left on 1.29.0 applies the
+old rules after that block and drifts from the network. The procedure is the same as for
+1.29.0 below:
+
+```bash
+git pull                                            # 1.30.0 tags in docker-compose.yml
+docker compose pull pixagram pixagram_haf
+
+# 1. consensus node: rebuild the state file from block_log, then start normally
+docker compose stop pixagram
+HIVED_EXTRA_ARGS="--force-replay --exit-before-sync" docker compose run --rm --no-deps pixagram
+docker compose up -d pixagram
+
+# 2. HAF + Hivemind: drop derived state and let them resync together
+docker compose stop pixagram_haf hivemind_sync hivemind hivemind_setup
+docker compose rm -f pixagram_haf hivemind_sync hivemind hivemind_setup
+sudo rm -rf pixagram-haf/haf_db_store pixagram-haf/blockchain pixagram-haf/logs pixagram-haf/p2p
+docker compose up -d
+
+# 3. Jussi keeps the old Hivemind address and answers 502 on bridge.* until restarted
+docker compose restart jussi
+```
+
+A witness can avoid missed slots by moving to a standby node with its own signing key first
+and back afterwards; the upgrade then costs nothing on chain.
+
 ## Upgrading to 1.29.0 (hardfork 29)
 
-Hardfork 29 activates on **2026-09-18 12:00:00 UTC**. Every hived on the network -
-witnesses and API nodes alike - must run 1.29.0 before then; after activation the network
+Hardfork 29 activated on **2026-09-18 12:00:00 UTC** at block 402205. Every hived on the network -
+witnesses and API nodes alike - had to run 1.29.0 before then; after activation the network
 rejects blocks and state produced by older versions.
 
 hived stamps its build configuration into `shared_memory.bin` and refuses a state file
