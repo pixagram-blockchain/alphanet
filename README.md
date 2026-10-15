@@ -26,10 +26,10 @@ Jussi routes JSON-RPC requests to the correct backend (hived for chain queries, 
 
 | Service | Container | Image | Ports | Description |
 |---|---|---|---|---|
-| **pixagram** | `pixagram_container` | `pixadock/pixagram:1.30.0` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
-| **pixagram_haf** | `pixagram_haf_container` | `pixadock/pixagram-haf:1.30.0` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
-| **hivemind_sync** | `hivemind_sync_container` | `pixadock/hivemind:mainnet` | — | Block processor, indexes HAF data for social queries |
-| **hivemind** | `hivemind_container` | `pixadock/hivemind:mainnet` | 7778 (HTTP) | PostgREST API server for social queries (bridge, follow, tags) |
+| **pixagram** | `pixagram_container` | `pixadock/pixagram:1.30.1` | 7777 (HTTP), 2001 (P2P) | Main blockchain node (hived) |
+| **pixagram_haf** | `pixagram_haf_container` | `pixadock/pixagram-haf:1.30.1` | 7779 (HTTP), 8092 (WS), 2002 (P2P) | HAF node (hived + PostgreSQL indexer) |
+| **hivemind_sync** | `hivemind_sync_container` | `pixadock/hivemind:1.28.8` | — | Block processor, indexes HAF data for social queries |
+| **hivemind** | `hivemind_container` | `pixadock/hivemind:1.28.8` | 7778 (HTTP) | PostgREST API server for social queries (bridge, follow, tags) |
 | **jussi** | `jussi_container` | `openresty/openresty:alpine` | 8080 (internal) | API proxy: routes requests + field-name translation |
 | **bigmac-feed** | `bigmac_feed_container` | `pixadock/bigmac-feed:latest` | — | Witness price feed (1 PXS = 1 Big Mac) |
 | **ssl-proxy** | `ssl_proxy_container` | `caddy:alpine` | 80, 443 | TLS termination with auto-cert |
@@ -246,6 +246,30 @@ docker compose up -d
 **2. `post_id` is gone from bridge API responses.** Upstream removed internal
 post and vote IDs in 1.28.6, so `bridge.get_ranked_posts`, `get_account_posts`
 and `get_post` now return `post_id: null`. Check any frontend that reads it.
+
+## Upgrading to 1.30.1
+
+1.30.1 is a maintenance release without a hardfork, so 1.30.0 and 1.30.1 nodes run side by side.
+Hivemind 1.28.8 needs the new HAF, so HAF and Hivemind resync together:
+
+```bash
+git pull                                            # 1.30.1 tags in docker-compose.yml
+docker compose pull
+
+# 1. consensus node: rebuild the state file from block_log, then start normally
+docker compose stop pixagram
+HIVED_EXTRA_ARGS="--force-replay --exit-before-sync" docker compose run --rm --no-deps pixagram
+docker compose up -d pixagram
+
+# 2. HAF + Hivemind: drop derived state and let them resync together
+docker compose stop pixagram_haf hivemind_sync hivemind hivemind_setup
+docker compose rm -f pixagram_haf hivemind_sync hivemind hivemind_setup
+sudo rm -rf pixagram-haf/haf_db_store pixagram-haf/blockchain pixagram-haf/logs pixagram-haf/p2p
+docker compose up -d
+
+# 3. Jussi keeps the old Hivemind address and answers 502 on bridge.* until restarted
+docker compose restart jussi
+```
 
 ## Upgrading to 1.30.0 (hardfork 30)
 
